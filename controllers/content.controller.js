@@ -33,8 +33,10 @@ const getVideoMetadata = (filename) => {
 
 exports.getAllVideos = (req, res) => {
   try {
+    const allowedExtensions = ['.mp4', '.avi', '.mkv'];
+
     const videoFiles = fs.readdirSync(videosDirectory)
-      .filter(file => path.extname(file).toLowerCase() === '.mp4');
+      .filter(file => allowedExtensions.includes(path.extname(file).toLowerCase()));
     
     const videos = videoFiles.map(file => getVideoMetadata(file));
     
