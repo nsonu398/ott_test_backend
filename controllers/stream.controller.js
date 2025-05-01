@@ -4,6 +4,7 @@ const path = require('path');
 
 const videosDirectory = path.join(__dirname, '../videos');
 
+// Updated streamVideo function
 exports.streamVideo = (req, res) => {
   const { id } = req.params;
   const videosDir = path.join(videosDirectory);
@@ -59,34 +60,62 @@ exports.streamVideo = (req, res) => {
     case '.wmv':
       contentType = 'video/x-ms-wmv';
       break;
-    // Add more types as needed
   }
   
+  // Improved range handling
   if (range) {
     // Parse Range header
     const parts = range.replace(/bytes=/, "").split("-");
     const start = parseInt(parts[0], 10);
-    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-    const chunksize = (end - start) + 1;
-    const file = fs.createReadStream(videoPath, { start, end });
     
-    // Set appropriate headers for streaming
-    res.writeHead(206, {
+    // Calculate a reasonable end position - capped at 2MB chunks for better seeking
+    // This helps with faster seeking by limiting chunk size
+    const end = parts[1] 
+      ? parseInt(parts[1], 10) 
+      : Math.min(start + 2000000, fileSize - 1); // 2MB chunks or end of file
+    
+    const chunksize = (end - start) + 1;
+    
+    // Set additional headers to improve seeking behavior
+    const headers = {
       'Content-Range': `bytes ${start}-${end}/${fileSize}`,
       'Accept-Ranges': 'bytes',
       'Content-Length': chunksize,
       'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=86400', // Allow caching for 24 hours
+      'X-Content-Type-Options': 'nosniff'
+    };
+    
+    res.writeHead(206, headers);
+    
+    const file = fs.createReadStream(videoPath, { 
+      start, 
+      end,
+      highWaterMark: 64 * 1024 // Increase buffer size for better performance
+    });
+    
+    // Handle errors in the stream
+    file.on('error', (err) => {
+      console.error(`Error streaming file: ${err.message}`);
+      if (!res.headersSent) {
+        res.status(500).send('Error streaming video');
+      }
     });
     
     // Stream the file
     file.pipe(res);
   } else {
-    // If no range header, send the whole file
+    // Handle requests without range header
     res.writeHead(200, {
       'Content-Length': fileSize,
       'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=86400',
     });
     
-    fs.createReadStream(videoPath).pipe(res);
+    fs.createReadStream(videoPath, {
+      highWaterMark: 64 * 1024 // Increase buffer size
+    }).pipe(res);
   }
 };
+
+

@@ -17,8 +17,8 @@ const getVideoMetadata = (filename) => {
     id,
     title: id.charAt(0).toUpperCase() + id.slice(1).replace(/_/g, ' '), // Convert filename to title
     description: `This is a video about ${id.replace(/_/g, ' ')}.`,
-    poster_url: `/thumbnails/${id}.jpg`,
-    backdrop_url: `/thumbnails/${id}.jpg`,
+    poster_url: `https://api.ott.chandrasekharsahu.com:3000/thumbnails/${id}.jpg`,
+    backdrop_url: `https://api.ott.chandrasekharsahu.com:3000/thumbnails/${id}.jpg`,
     video_url: `/api/stream/${id}`,
     rating: (Math.random() * 2 + 3).toFixed(1), // Random rating between 3 and 5
     release_year: 2023,
